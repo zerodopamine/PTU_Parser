@@ -10,8 +10,8 @@ from chromium import chromium
 
 # Pokemon
 pokemon = {
-    "Name" : "Swinub",
-    "Level" : 26,
+    "Name" : "Floatzel",
+    "Level" : 43,
 }
 
 # pdf location
@@ -197,6 +197,8 @@ def read_pokedex_pdf(chromium):
 
     # Merge str data and parse it
     data = f'{left_text}\n{right_text}'
+    # Remove mega evolution data
+    data = data[:data.find("Mega Evolution")]
     poke_dict = read_pokedex_data(data)
     # After we have parsed pokemon data fill the fields on roll20
     chromium.name = pokemon['Name']
@@ -249,6 +251,7 @@ def read_pokedex_pdf(chromium):
             pass
         else:
             for index, subvalue in enumerate(value):
+                print(attr, index, subvalue)
                 chromium.find_input(attr[index], subvalue)
 
 if __name__ == "__main__":
