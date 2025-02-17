@@ -2,7 +2,6 @@ import json
 import re
 import os
 import pdfplumber
-handbook_path = '/home/josh/Downloads/Pokemon Tabletop United 1.05 Core.pdf'
 
 '''Read the playerhand book for ability and move data'''
 def parse_findall(output):
@@ -11,11 +10,23 @@ def parse_findall(output):
     else: output = 'N/A'
     return output
 
-def pdf_ability_to_json():
+def save_json(data, file_name):
+    file_path = f"{os.path.dirname(os.path.abspath(__file__))}/{file_name}.json"
+    # Check if file exists, if it does append to it
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as outfile: 
+            current_data = json.load(outfile)
+            current_data.update(data)
+            data = dict(sorted(current_data.items()))
+
+    # Convert and write JSON object to file
+    with open(file_path, "w") as outfile: 
+        json.dump(data, outfile)
+
+def pdf_ability_to_json(load_path,pages):
     adata = {}
-    abilities = [310,337]
-    with pdfplumber.open(handbook_path) as pdf:
-        for i in range(abilities[0], abilities[1]):
+    with pdfplumber.open(load_path) as pdf:
+        for i in range(pages[0], pages[1]):
             page = pdf.pages[i]
 
             # Get the page width and height to determine column coordinates
@@ -23,8 +34,8 @@ def pdf_ability_to_json():
             page_height = page.height
 
             # Define bounding boxes for left and right columns (adjust these values as needed)
-            left_bbox = (0, 0, page_width / 2, page_height)  # (x0, y0, x1, y1)
-            right_bbox = (page_width / 2, 0, page_width, page_height)
+            left_bbox = (0, 0, page_width / 2, page_height - 20)  # (x0, y0, x1, y1)
+            right_bbox = (page_width / 2, 0, page_width, page_height - 20)
 
             # Extract text for left column
             left_text = page.within_bbox(left_bbox).extract_text()
@@ -51,15 +62,12 @@ def pdf_ability_to_json():
                 }
 
     adata = dict(sorted(adata.items()))
-    # Convert and write JSON object to file
-    with open(f"{os.path.dirname(os.path.abspath(__file__))}/abilities.json", "w") as outfile: 
-        json.dump(adata, outfile)
+    save_json(adata, "abilities")
 
-def pdf_moves_to_json():
-    moves = [345,436]
+def pdf_moves_to_json(load_path, pages):
     adata = {}
-    with pdfplumber.open(handbook_path) as pdf:
-        for i in range(moves[0], moves[1]):
+    with pdfplumber.open(load_path) as pdf:
+        for i in range(pages[0], pages[1]):
             page = pdf.pages[i]
 
             # Get the page width and height to determine column coordinates
@@ -67,8 +75,8 @@ def pdf_moves_to_json():
             page_height = page.height
 
             # Define bounding boxes for left and right columns (adjust these values as needed)
-            left_bbox = (0, 0, page_width / 2, page_height)  # (x0, y0, x1, y1)
-            right_bbox = (page_width / 2, 0, page_width, page_height)
+            left_bbox = (0, 0, page_width / 2, page_height - 20)  # (x0, y0, x1, y1)
+            right_bbox = (page_width / 2, 0, page_width, page_height - 20)
 
             # Extract text for left column
             left_text = page.within_bbox(left_bbox).extract_text()
@@ -111,10 +119,29 @@ def pdf_moves_to_json():
                     'Contest Effect' : ceffect
                 }
             adata = dict(sorted(adata.items()))
-            # Convert and write JSON object to file
-            with open(f"{os.path.dirname(os.path.abspath(__file__))}/moves.json", "w") as outfile: 
-                json.dump(adata, outfile)
+            save_json(adata, "moves")
 
 if __name__ == '__main__':
-    pdf_ability_to_json()
-    pdf_moves_to_json()
+    handbook_path = '/home/josh/Downloads/Pokemon_PDFs/'
+    handbook_abilities = {
+        'Arceus References.pdf' : (0,1),
+        'SuMo References-1.pdf' : (0,5),
+        'SwSh + Armor_Crown References.pdf' : (0,5),
+        'Pokemon Tabletop United 1.05 Core.pdf' : (311,337)
+    }
+    handbook_moves = {
+        'Arceus References.pdf' : (1,17),
+        'SuMo References-1.pdf' : (7,23),
+        'SwSh + Armor_Crown References.pdf' : (7,26),
+        'Pokemon Tabletop United 1.05 Core.pdf' : (346,436)
+    }
+    # Update abilities json
+    for handbook in handbook_abilities:
+        book_path = os.path.join(handbook_path, handbook)
+        pages = handbook_abilities[handbook]
+        pdf_ability_to_json(book_path, pages)
+    #Update move json
+    for handbook in handbook_moves:
+        book_path = os.path.join(handbook_path, handbook)
+        pages = handbook_moves[handbook]
+        pdf_moves_to_json(book_path, pages)
