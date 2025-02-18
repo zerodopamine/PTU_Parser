@@ -5,30 +5,32 @@ import sys
 import pdfplumber
 
 # Import the file I wrote to control chrome
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+script_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(script_path)
 from chromium import chromium
 
 # Pokemon
 pokemon = {
-    "Name" : "Floatzel",
+    "Name" : "WISHIWASHI Schooling",
     "Level" : 43,
 }
 
-# pdf location
-pokedex_path = "/home/josh/Downloads/Pokedex 1.05.pdf"
-abilities_path = '/home/josh/Downloads/PTU_Parser/abilities.json'
-moves_path = '/home/josh/Downloads/PTU_Parser/moves.json'
-index_path = "/home/josh/Downloads/PTU_Parser/index.txt"
+# pokedex pdf location
+pokedex_path = "/home/josh/Downloads/Pokemon_PDFs/Dex"
 
 def read_pokedex_pdf(chromium):
 
     # Load moves
-    with open(moves_path, 'r') as opf:
+    with open(f'{script_path}/moves.json', 'r') as opf:
         moves = json.load(opf)
 
     # Load abilities
-    with open(abilities_path, 'r') as opf:
+    with open(f'{script_path}/abilities.json', 'r') as opf:
         abilities = json.load(opf)
+
+    # Load page numbers for pokemon
+    with open(f'{script_path}/pokedex.json', 'r') as opf:
+        indices = json.load(opf)
 
     skill_to_attr = {
         'Athl' : 'attr_Athletics',
@@ -158,6 +160,10 @@ def read_pokedex_pdf(chromium):
 
         # Now we need to find the move list
         match = re.search(r"Level Up Move List(.*?)TM/HM Move List", data, re.DOTALL)
+        if not match: 
+            match = re.search(r"Level Up Move List(.*?)TM Move List", data, re.DOTALL)
+        if not match: 
+            match = re.search(r"Level Up Move List(.*?)Tutor Move List", data, re.DOTALL)
         if match:
             text = match.group(1).strip().replace('\n',',').split(',')
             for move in text:
@@ -167,20 +173,18 @@ def read_pokedex_pdf(chromium):
                 index = move.index(' ')
                 # Seperate move name and level learned
                 poke_dict['Move List'][0].append(move[index+1:].strip())
-                poke_dict['Move List'][1].append(int(move[:index]))
+                try: poke_dict['Move List'][1].append(int(move[:index]))
+                except ValueError: poke_dict['Move List'][1].append(pokemon["Level"])
         # Remove placeholder ability keys
         del poke_dict['Adv Ability'], poke_dict['Basic Ability'], poke_dict['High Ability']
         return poke_dict
     
-    pokedex = {}
-    with open(index_path, 'r') as opf:
-        lines = opf.readlines()
-    for line in lines:
-        line = line.split()
-        pokedex[line[0].lower()] = int(line[1])
+    pokemon_info = indices[pokemon["Name"].upper()]
+    book_path = os.path.join(pokedex_path, pokemon_info["handbook"])
+    book_page = pokemon_info["page_number"]
 
-    with pdfplumber.open(pokedex_path) as pdf:
-        page = pdf.pages[pokedex[pokemon['Name'].lower()]]
+    with pdfplumber.open(book_path) as pdf:
+        page = pdf.pages[book_page]
         # Get the page width and height to determine column coordinates
         page_width = page.width
         page_height = page.height
@@ -212,9 +216,11 @@ def read_pokedex_pdf(chromium):
         # Loop through moves
         if key == 'Move List': 
             values, levels, attr = poke_dict[key]
-            below_target = [num for num in levels if num < pokemon['Level']][-6:]
-            for level in below_target:
-                index = levels.index(level)
+            # Sort by level to account for evolution moves
+            values = [x for _, x in sorted(zip(levels, values))]
+            levels = sorted(levels)
+            below_target = [i for i in range(len(levels)) if levels[i] <= pokemon['Level']][-6:]
+            for index in below_target:
                 move = values[index]
                 chromium.find_button('repeating_moves')
                 parent = chromium.find_move_parent()
@@ -243,6 +249,7 @@ def read_pokedex_pdf(chromium):
                 chromium.find_input(value, roll[index])
                 chromium.find_input(f'{value}_bonus', bonus[index])
             continue
+
         value, attr = poke_dict[key]
         if key == 'Capability Extra':
             chromium.find_textarea(attr, value)
@@ -251,7 +258,6 @@ def read_pokedex_pdf(chromium):
             pass
         else:
             for index, subvalue in enumerate(value):
-                print(attr, index, subvalue)
                 chromium.find_input(attr[index], subvalue)
 
 if __name__ == "__main__":

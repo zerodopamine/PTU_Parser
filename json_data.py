@@ -125,7 +125,7 @@ if __name__ == '__main__':
     handbook_path = '/home/josh/Downloads/Pokemon_PDFs/'
     handbook_abilities = {
         'Arceus References.pdf' : (0,1),
-        'SuMo References-1.pdf' : (0,5),
+        'SuMo References-1.pdf' : (0,6),
         'SwSh + Armor_Crown References.pdf' : (0,5),
         'Pokemon Tabletop United 1.05 Core.pdf' : (311,337)
     }
