@@ -9,7 +9,7 @@ pokemon = {
 }
 
 # pokedex pdf location
-pokedex_path = "C:\\Users\\jrjfeath\\Downloads\\PTU_Parser-main"
+pokedex_path = "C:\\Users\\User\\Downloads\\PTU_Parser-main"
 
 def read_pokedex_pdf(chromium):
 
