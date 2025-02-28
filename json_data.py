@@ -122,24 +122,24 @@ def pdf_moves_to_json(load_path, pages):
             save_json(adata, "moves")
 
 if __name__ == '__main__':
-    handbook_path = '/home/josh/Downloads/Pokemon_PDFs/'
+    handbook_path = r'C:\Users\USER\Downloads\PTU_Parser-main'
     handbook_abilities = {
         'Arceus References.pdf' : (0,1),
-        'SuMo References-1.pdf' : (0,6),
+        'SuMo References.pdf' : (0,6),
         'SwSh + Armor_Crown References.pdf' : (0,5),
         'Pokemon Tabletop United 1.05 Core.pdf' : (311,337)
     }
     handbook_moves = {
         'Arceus References.pdf' : (1,17),
-        'SuMo References-1.pdf' : (7,23),
+        'SuMo References.pdf' : (7,23),
         'SwSh + Armor_Crown References.pdf' : (7,26),
-        'Pokemon Tabletop United 1.05 Core.pdf' : (346,436)
+        'Pokemon Tabletop United 1.05 Core.pdf' : (345,436)
     }
     # Update abilities json
-    for handbook in handbook_abilities:
-        book_path = os.path.join(handbook_path, handbook)
-        pages = handbook_abilities[handbook]
-        pdf_ability_to_json(book_path, pages)
+    # for handbook in handbook_abilities:
+    #     book_path = os.path.join(handbook_path, handbook)
+    #     pages = handbook_abilities[handbook]
+    #     pdf_ability_to_json(book_path, pages)
     #Update move json
     for handbook in handbook_moves:
         book_path = os.path.join(handbook_path, handbook)
