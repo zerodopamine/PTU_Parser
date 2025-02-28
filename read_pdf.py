@@ -1,22 +1,15 @@
-import json
-import os
-import re
-import sys
-import pdfplumber
-
-# Import the file I wrote to control chrome
-script_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(script_path)
-from chromium import chromium
+# Use the following commands to open the browser before you run the code
+# Linux Command: chromium --remote-debugging-port=9222 
+# Windows Command: "C:\Program Files\Google\Chrome\Application\chrome.exe" --remote-debugging-port=9222
 
 # Pokemon
 pokemon = {
-    "Name" : "WISHIWASHI Schooling",
-    "Level" : 43,
+    "Name" : "Liepard",
+    "Level" : 47,
 }
 
 # pokedex pdf location
-pokedex_path = "/home/josh/Downloads/Pokemon_PDFs/Dex"
+pokedex_path = "C:\\Users\\jrjfeath\\Downloads\\PTU_Parser-main"
 
 def read_pokedex_pdf(chromium):
 
@@ -227,6 +220,14 @@ def read_pokedex_pdf(chromium):
                 chromium.search_parent(parent, attr[0], move)
                 for si, skey in enumerate(moves[move]):
                     chromium.search_parent(parent, attr[si+1], moves[move][skey])
+                    #Add a number to the scene field
+                    if skey == "Frequency" and "Scene" in moves[move][skey]:
+                        Uses = moves[move][skey].split(" ")
+                        if len(Uses) == 1: 
+                            chromium.search_parent(parent, "attr_mlUses", 1)
+                        else:
+                            Uses = Uses[1].replace("x","").strip()
+                            chromium.search_parent(parent, "attr_mlUses", Uses)
             continue
 
         # Loop through abilities
@@ -261,6 +262,17 @@ def read_pokedex_pdf(chromium):
                 chromium.find_input(attr[index], subvalue)
 
 if __name__ == "__main__":
+    import json
+    import os
+    import re
+    import sys
+    import pdfplumber
+
+    # Import the file I wrote to control chrome
+    script_path = os.path.dirname(os.path.abspath(__file__))
+    sys.path.append(script_path)
+    from chromium import chromium
+
     # Import the selenium browser
     chromium = chromium()
     read_pokedex_pdf(chromium)

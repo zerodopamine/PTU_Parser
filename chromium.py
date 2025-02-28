@@ -1,16 +1,22 @@
+import platform
+import time
+
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-import time
-# chromium --remote-debugging-port=9222 --user-data-dir=/home/josh/.config/chromium
 
 class chromium():
     def __init__(self):
         # Set up Chrome options to connect to the already running browser
         options = Options()
-        options.add_argument("--remote-debugging-port=9222")  # Match the port from the previous command
+
+        if platform.system() == "Windows":
+            options.debugger_address = "127.0.0.1:9222"
+        elif platform.system() == "Linux":
+            options.add_argument("--remote-debugging-port=9222") 
 
         # Set up the driver to connect to the open browser
         driver = webdriver.Chrome(options=options)
