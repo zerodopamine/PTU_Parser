@@ -4,12 +4,14 @@
 
 # Pokemon
 pokemon = {
-    "Name" : "Liepard",
-    "Level" : 47,
+    "Name" : "Slowking ",
+    "Level" : 48,
 }
+# If you want the pokemon to have all moves and not just six, set True otherwise False
+all_moves = False
 
 # pokedex pdf location
-pokedex_path = "C:\\Users\\User\\Downloads\\PTU_Parser-main"
+pokedex_path = r"C:\Users\jrjfeath\Downloads\PTU_Parser-main"
 
 def read_pokedex_pdf(chromium):
 
@@ -172,7 +174,7 @@ def read_pokedex_pdf(chromium):
         del poke_dict['Adv Ability'], poke_dict['Basic Ability'], poke_dict['High Ability']
         return poke_dict
     
-    pokemon_info = indices[pokemon["Name"].upper()]
+    pokemon_info = indices[pokemon["Name"].strip().upper()]
     book_path = os.path.join(pokedex_path, pokemon_info["handbook"])
     book_page = pokemon_info["page_number"]
 
@@ -212,7 +214,11 @@ def read_pokedex_pdf(chromium):
             # Sort by level to account for evolution moves
             values = [x for _, x in sorted(zip(levels, values))]
             levels = sorted(levels)
-            below_target = [i for i in range(len(levels)) if levels[i] <= pokemon['Level']][-6:]
+            # Check how many moves the pokemon should have
+            if not all_moves:
+                below_target = [i for i in range(len(levels)) if levels[i] <= pokemon['Level']][-6:]
+            else:
+                below_target = [i for i in range(len(levels))]
             for index in below_target:
                 move = values[index]
                 chromium.find_button('repeating_moves')
@@ -237,6 +243,9 @@ def read_pokedex_pdf(chromium):
                 chromium.find_button('repeating_abilities')
                 parent = chromium.find_ability_parent()
                 chromium.search_parent(parent, attr[0], value)
+                if f' {value}' not in abilities:
+                    print(f'The following ability ({value}) not found!')
+                    continue
                 for index, skey in enumerate(abilities[f' {value}']):
                     svalue = abilities[f' {value}'][skey]
                     chromium.search_parent(parent, attr[index+1], svalue)
