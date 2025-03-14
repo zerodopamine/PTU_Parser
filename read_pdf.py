@@ -4,8 +4,8 @@
 
 # Pokemon
 pokemon = {
-    "Name" : "Trapinch",
-    "Level" : 38,
+    "Name" : "Victreebel",
+    "Level" : 58,
 }
 # If you want the pokemon to have all moves and not just six, set True otherwise False
 all_moves = False
@@ -204,7 +204,7 @@ def read_pokedex_pdf(chromium):
         page = pdf.pages[book_page]
         # Get the page width and height to determine column coordinates
         page_width = page.width
-        page_height = page.height
+        page_height = page.height - 25 # Chop off bottom of page to remove page numbers
 
         # Define bounding boxes for left and right columns (adjust these values as needed)
         left_bbox = (0, 0, page_width / 2, page_height)  # (x0, y0, x1, y1)
@@ -262,9 +262,14 @@ def read_pokedex_pdf(chromium):
                         # Get the data from the move dict using the provided key
                         input_data = moves[move][params[2]]
                         chromium.edit_item_element(parent,params[1], params[0], input_data)
-                        if params[0] == "attr_mlType":
-                            if input_data in poke_dict["Type"][0]:
-                                chromium.edit_item_element(parent,"checkbox","attr_mlStab","True")
+                        # Check to see if the move is stab
+                        if params[0] == "attr_mlType" and input_data in poke_dict["Type"][0]:
+                            chromium.edit_item_element(parent,"checkbox","attr_mlStab","True")
+                        # Check to see if move text specifies a critical hit value
+                        if params[0] == "attr_mlEffects" and "Critical Hit on" in input_data:
+                            match = re.search(r"Critical Hit on (\d+)", input_data)
+                            if match:
+                                chromium.edit_item_element(parent,"input","attr_mlCrit",int(match.group(1)))
 
         # Loop through abilities
         elif key == 'Ability':
