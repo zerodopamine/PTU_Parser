@@ -4,14 +4,14 @@
 
 # Pokemon
 pokemon = {
-    "Name" : "Slowking ",
-    "Level" : 48,
+    "Name" : "Trapinch",
+    "Level" : 38,
 }
 # If you want the pokemon to have all moves and not just six, set True otherwise False
 all_moves = False
 
 # pokedex pdf location
-pokedex_path = r"C:\Users\jrjfeath\Downloads\PTU_Parser-main"
+pokedex_path = r"P:\Pokemon\PTU 1.05"
 
 def read_pokedex_pdf(chromium):
 
@@ -52,57 +52,53 @@ def read_pokedex_pdf(chromium):
                     poke_dict[key][0].append(value.strip())
             elif 'Ability' in key:
                 if index:
-                    poke_dict['Abilities'][0].append(found[index:])
+                    poke_dict['Ability'][0].append(found[index:])
                 else:
-                    poke_dict['Abilities'][0].append(found)
+                    poke_dict['Ability'][0].append(found)
             else:
                 poke_dict[key][0] = found
             return poke_dict
 
         poke_dict = {
+            'Name' : [pokemon['Name'],"attr_character_name"],
+            'Species' : [pokemon['Name'], "attr_species"],
+            'Level' : [pokemon['Level'],"attr_level"],
+            'Type' : [[],['attr_type1','attr_type2']],
+            'Height' : ['','attr_height'],
+            'Weight' : [[],['attr_weight','attr_weightClass']],
             'HP' : ['','attr_base_HP'],
             'Attack' : ['','attr_base_ATK'],
             'Defense' : ['','attr_base_DEF'],
             'Special Attack' : ['','attr_base_SPATK'],
             'Special Defense' : ['','attr_base_SPDEF'],
             'Speed' : ['','attr_base_SPEED'],
-            'Type' : [[],['attr_type1','attr_type2']],
-            'Basic Ability' : None,
-            'Adv Ability' : None,
-            'High Ability' : None,
-            'Height' : ['','attr_height'],
-            'Weight' : [[],['attr_weight','attr_weightClass']],
-            'Capability List' : [[],[
-                'attr_Overland',
-                'attr_Swim',
-                'attr_LJ',
-                'attr_HJ',
-                'attr_Power'
+            'Ability' : [[],[
+                ['attr_Ability_Name','input', None],
+                ['attr_Ability_Freq','input', 'Frequency'],
+                ['attr_Ability_Trigger','input', 'Trigger'],
+                ['attr_Ability_Target','input', 'Target'],
+                ['attr_Ability_Info','textarea', 'Effect']
             ]],
-            'Capability Extra' : ['','attr_notes'],
+            'Capability List' : [[],[]], #Value, attribute
             'Skill List' : [[],[],[]], #Skill, roll, bonus
-            'Move List' : [[],[],[
-                'attr_mlName',
-                'attr_mlType',
-                'attr_mlFrequency',
-                'attr_mlAC',
-                'attr_mlDB',
-                'attr_mlCat',
-                'attr_mlRange',
-                'attr_mlEffects',
-                'attr_mlContestType',
-                'attr_mlContestEffect'
-            ]],
-            'Abilities' : [[],[
-                'attr_Ability_Name',
-                'attr_Ability_Freq',
-                'attr_Ability_Trigger',
-                'attr_Ability_Target',
-                'attr_Ability_Info'
-            ]]
+            # Name, Level, [Attribute, Attribute Type, Key]
+            'Move List' : [[],[],
+                [['attr_mlName','input', None],
+                ['attr_mlFrequency','select', "Frequency"],
+                ['attr_mlUses', 'input', "Frequency"],
+                ['attr_mlCat','select', "Class"],
+                ['attr_mlType', 'select', "Type"],
+                ['attr_mlRange','input', "Range"],
+                ['attr_mlContestType', 'select', "Contest Type"],
+                ['attr_mlAC','input', "AC"],
+                ['attr_mlContestEffect', 'input', "Contest Effect"],
+                ['attr_mlDB','input', "Damage Base"],
+                ['attr_mlEffects', 'textarea', "Effect"]],
+            ]
         }
+
         keys = list(poke_dict.keys())
-        for key in keys:
+        for key in keys[3:]:
             if key == 'Capability List': break
             found = re.findall(f'{key}(.*)\n', data)
             # Skip keys with no data
@@ -119,21 +115,49 @@ def read_pokedex_pdf(chromium):
         
         # Now we need to find the capability list
         match = re.search(r"Capability List(.*?)Skill List", data, re.DOTALL)
+        # Attribute to apply to each string
+        attrs = {
+            'Overland' : 'attr_Overland',
+            'Swim'     : 'attr_Swim',
+            'Long'     : 'attr_LJ',
+            'High'     : 'attr_HJ',
+            'Power'    : 'attr_Power'
+            }
         if match:
-            text = match.group(1).strip().replace('-\n','').replace('\n',' ').split(',')
-            for i, value in enumerate(text):
-                if i < 4: 
-                    value = value.split(' ')[-1]
-                    if '/' in value:
-                        value = value.split('/')
-                        poke_dict['Capability List'][0].append(value[0])
-                        poke_dict['Capability List'][0].append(value[1])
-                    else:
-                        poke_dict['Capability List'][0].append(value)
+            s = match.group(1).strip().replace('-\n','').replace('\n',' ')
+            # Regular expression to capture "String Int" and "Jump X/Y" formats
+            pattern = r'([A-Za-z]+(?:\s[A-Za-z]+)*)\s(\d+(/\d+)?)'
+            
+            extra_parts = s  # Start with full string and remove matches
+
+            # Extract matches using regex
+            matches = re.findall(pattern, s)
+            for match in matches:
+                key = match[0]  # Capability type
+                # Add the attr key to the list to know where to put value
+                if key in attrs: 
+                    poke_dict['Capability List'][1].append(attrs[key])
+                elif key == "Jump":
+                    poke_dict['Capability List'][1].append(attrs["Long"])
+                    poke_dict['Capability List'][1].append(attrs["High"])
                 else:
-                    # Dont save pg numbers to string
-                    if value.strip().isdigit(): continue
-                    poke_dict['Capability Extra'][0]+=f'{value.strip()},'
+                    poke_dict['Capability List'][1].append(key)
+
+                value = match[1]  # Value (handles "X/Y" case for Jump)
+
+                if '/' not in value:
+                    poke_dict['Capability List'][0].append(value)
+                else:
+                    poke_dict['Capability List'][0].append(value.split("/")[0])
+                    poke_dict['Capability List'][0].append(value.split("/")[1])
+
+                # Remove matched part from extra_parts
+                extra_parts = extra_parts.replace(f"{key} {value}", "").strip(", ")
+
+            # Remaining parts are considered "Extra Capabilities"
+            if extra_parts:
+                poke_dict['Capability List'][0].append(extra_parts.strip(", "))
+                poke_dict['Capability List'][1].append('attr_notes')
         
         # Now we need to find the Skill list
         match = re.search(r"Skill List(.*?)Move List", data, re.DOTALL)
@@ -166,12 +190,10 @@ def read_pokedex_pdf(chromium):
                 dindex = move.rindex('-')
                 move = move[:dindex]
                 index = move.index(' ')
-                # Seperate move name and level learned
+                # Seperate Name and level learned
                 poke_dict['Move List'][0].append(move[index+1:].strip())
                 try: poke_dict['Move List'][1].append(int(move[:index]))
                 except ValueError: poke_dict['Move List'][1].append(pokemon["Level"])
-        # Remove placeholder ability keys
-        del poke_dict['Adv Ability'], poke_dict['Basic Ability'], poke_dict['High Ability']
         return poke_dict
     
     pokemon_info = indices[pokemon["Name"].strip().upper()]
@@ -199,15 +221,10 @@ def read_pokedex_pdf(chromium):
     # Remove mega evolution data
     data = data[:data.find("Mega Evolution")]
     poke_dict = read_pokedex_data(data)
-    # After we have parsed pokemon data fill the fields on roll20
-    chromium.name = pokemon['Name']
-    chromium.find_roll20()
-    chromium.find_input("attr_character_name", pokemon['Name'])
-    chromium.find_input("attr_species", pokemon['Name'])
-    chromium.find_input("attr_level", pokemon['Level'])
-    for key in poke_dict.keys():
-        print(f'Starting: {key}')
 
+    # After we have parsed pokemon data fill the fields on roll20
+    chromium.find_roll20()
+    for key in poke_dict.keys():
         # Loop through moves
         if key == 'Move List': 
             values, levels, attr = poke_dict[key]
@@ -221,54 +238,83 @@ def read_pokedex_pdf(chromium):
                 below_target = [i for i in range(len(levels))]
             for index in below_target:
                 move = values[index]
-                chromium.find_button('repeating_moves')
-                parent = chromium.find_move_parent()
-                chromium.search_parent(parent, attr[0], move)
-                for si, skey in enumerate(moves[move]):
-                    chromium.search_parent(parent, attr[si+1], moves[move][skey])
-                    #Add a number to the scene field
-                    if skey == "Frequency" and "Scene" in moves[move][skey]:
-                        Uses = moves[move][skey].split(" ")
-                        if len(Uses) == 1: 
-                            chromium.search_parent(parent, "attr_mlUses", 1)
+                # Check if the move is in the json
+                if move not in moves.keys():
+                    print(f"Unknown move {move} found on {pokemon["Name"]}")
+                    continue
+                # Add new blank move to sheet
+                parent = chromium.add_new_item("repeating_moves")
+                # Loop through the attributes of the move
+                for params in attr:
+                    # If name, no need to access move dict
+                    if params[0] == 'attr_mlName':
+                        # Parent item, attribute type, attribute name, input
+                        chromium.edit_item_element(parent,params[1], params[0], move)
+                    elif params[0] == 'attr_mlUses':
+                        # Get the data from the move dict using the provided key
+                        input_data = moves[move][params[2]].split(" ")
+                        if len(input_data) == 1:
+                            chromium.edit_item_element(parent,params[1], params[0], 1)
                         else:
-                            Uses = Uses[1].replace("x","").strip()
-                            chromium.search_parent(parent, "attr_mlUses", Uses)
-            continue
+                            input_data = input_data[-1].replace("x","").strip()
+                            chromium.edit_item_element(parent,params[1], params[0], input_data)
+                    else:
+                        # Get the data from the move dict using the provided key
+                        input_data = moves[move][params[2]]
+                        chromium.edit_item_element(parent,params[1], params[0], input_data)
+                        if params[0] == "attr_mlType":
+                            if input_data in poke_dict["Type"][0]:
+                                chromium.edit_item_element(parent,"checkbox","attr_mlStab","True")
 
         # Loop through abilities
-        if key == 'Abilities':
+        elif key == 'Ability':
             values, attr = poke_dict[key]
             for value in values:
-                chromium.find_button('repeating_abilities')
-                parent = chromium.find_ability_parent()
-                chromium.search_parent(parent, attr[0], value)
                 if f' {value}' not in abilities:
                     print(f'The following ability ({value}) not found!')
                     continue
-                for index, skey in enumerate(abilities[f' {value}']):
-                    svalue = abilities[f' {value}'][skey]
-                    chromium.search_parent(parent, attr[index+1], svalue)
-                chromium.find_button('repeating_abilities')
-            continue
+                parent = chromium.add_new_item("repeating_abilities")
+                for params in attr:
+                    # If it is the ability name pass the ability key
+                    if params[0] == 'attr_Ability_Name':
+                        chromium.edit_item_element(parent, params[1], params[0], value)
+                    # Else use the provided dict key to fetch data
+                    else:
+                        svalue = abilities[f' {value}'][params[2]]
+                        chromium.edit_item_element(parent, params[1], params[0], svalue)
+
+        elif key == 'Capability List':
+            values, attrs = poke_dict[key]
+            for index, attr in enumerate(attrs):
+                if "attr_" in attr and "notes" not in attr:
+                    chromium.find_input(attr,values[index])
+                elif "attr_" in attr and "notes" in attr:
+                    chromium.find_textarea(attr,values[index])
+                else:
+                    parent = chromium.add_new_item("repeating_capabilities")
+                    chromium.edit_item_element(parent, "input", "attr_Capability", attr)
+                    chromium.edit_item_element(parent, "input", "attr_Capability_Rank", values[index])
 
         # Loop through the skill list
-        if key == 'Skill List':
+        elif key == 'Skill List':
             attr, roll, bonus = poke_dict[key]
             for index, value in enumerate(attr):
                 chromium.find_input(value, roll[index])
                 chromium.find_input(f'{value}_bonus', bonus[index])
-            continue
 
-        value, attr = poke_dict[key]
-        if key == 'Capability Extra':
-            chromium.find_textarea(attr, value)
-        if type(value) == str:
-            chromium.find_input(attr, value)
-            pass
+        # For single input fields
         else:
-            for index, subvalue in enumerate(value):
-                chromium.find_input(attr[index], subvalue)
+            value, attr = poke_dict[key]
+            if attr in ["attr_notes"]:
+                chromium.find_textarea(attr, value)
+                continue
+            if type(value) == str:
+                chromium.find_input(attr, value)
+            elif type(value) == int:
+                chromium.find_input(attr, value)
+            else:
+                for index, subvalue in enumerate(value):
+                    chromium.find_input(attr[index], subvalue)
 
 if __name__ == "__main__":
     import json
