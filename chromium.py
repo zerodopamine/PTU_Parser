@@ -96,9 +96,12 @@ class chromium():
     
     def submit_fields(self, css_selector, input):
         '''Updates an <element> with a new value and sends signal.'''
+        # Replace any " with '
+        if type(input) == str:
+            input = input.replace('"', "'")
         self.driver.execute_script(f"""
             let element = document.querySelector('{css_selector}');
-            element.value = '{input}';
+            element.value = "{input}";
             element.dispatchEvent(new Event('change')); 
             element.dispatchEvent(new Event('blur')); 
             element.dispatchEvent(new Event('input'));
